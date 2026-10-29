@@ -142,10 +142,21 @@ enum Formatters {
         return formatter
     }()
 
-    /// Parser tolerante: fracciones de segundo, offset con dos puntos, y
-    /// como último recurso un DateFormatter POSIX genérico. Si nada pega,
-    /// devuelve nil (la UI muestra fecha de fallback en vez de crashear).
+    /// Formato REAL de los buckets de analytics (confirmado con la respuesta
+    /// cruda, iteración 3): `"2026-10-29 18:00:00"` — separador de espacio,
+    /// sin designador de zona; los valores están en UTC.
+    static let analyticsBucket: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.timeZone = TimeZone(identifier: "UTC")
+        formatter.dateFormat = "yyyy-MM-dd HH:mm:ss"
+        return formatter
+    }()
+
+    /// Parser tolerante: primero el formato real, luego ISO con/sin fracciones
+    /// y offsets con dos puntos, y epoch numérico en ms como último recurso.
     nonisolated(unsafe) static func parseISO8601(_ string: String) -> Date? {
+        if let d = Self.analyticsBucket.date(from: string) { return d }
         if let d = Self.iso8601Fractional.date(from: string) { return d }
         if let d = Self.iso8601.date(from: string) { return d }
         return Self.posix.date(from: string)

@@ -177,6 +177,17 @@ Timer de refresco, manejo de sleep/background, indicador de última actualizaci�
 - Pendiente de observar: comportamiento real al dormir/despertar (¿el tick
   retomado + didWake refrescan dos veces?) y si el sistema mata el loop en
   sleeps largos. Se valida con uso real, no en este commit.
+- **Formato real de los buckets** (vía curl de diagnóstico):
+  `"date__hour": "2026-10-29 18:00:00"` — espacio en vez de `T`, **sin zona
+  horaria**, valores en UTC. Ninguna variante ISO estándar lo pega; parser
+  dedicado `yyyy-MM-dd HH:mm:ss` en UTC.
+- **`cachedAt` es epoch en milisegundos** (ej. `1793300627880`), no string —
+  la API cachea las respuestas de analytics (el `cachedAt` apenas varía entre
+  consultas consecutivas): dato para la pregunta abierta #1 sobre frescura.
+- **La query incluye el bucket en progreso**: con `end = now`, la fila de la
+  hora actual aparece y crece dentro de la hora (por eso el pico era "el
+  consumo de ahora"). El curl con `end` en la hora exacta la excluye — los
+  rangos son `[start, end)`.
 
 ## Registro de ejecución
 
