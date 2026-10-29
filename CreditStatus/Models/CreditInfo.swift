@@ -1,8 +1,8 @@
 import Foundation
 
 /// `GET /api/v1/credits` — saldo total de la cuenta.
-/// Requiere management key. Verificado manualmente:
-/// `{"data":{"total_credits":60,"total_usage":56.723235767}}`
+/// Requiere management key. Respuesta de ejemplo (valores ilustrativos):
+/// `{"data":{"total_credits":60,"total_usage":56.7}}`
 struct CreditsResponse: Decodable {
     let data: CreditsInfo
 }

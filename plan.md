@@ -23,7 +23,7 @@ Una app que vive en la **barra de menú** y muestra, de un vistazo:
 
 | # | Tema | Decisión | Evidencia / porqué |
 |---|------|----------|--------------------|
-| 1 | Auth | **Management key** dedicada, cargada manualmente, con expiración y rotación (la del usuario expira Nov 2026) | `/credits` y la Analytics API exigen management key (403 con key de inferencia). Probado: `{"total_credits":60,"total_usage":56.72}` |
+| 1 | Auth | **Management key** dedicada, cargada manualmente, con expiración y rotación (la del usuario expira Nov 2026) | `/credits` y la Analytics API exigen management key (403 con key de inferencia). Probado: respuesta con `total_credits` ≈ $60 y `total_usage` ≈ $57 |
 | 2 | Gasto horario | **Analytics API** (`POST /api/v1/analytics/query`, `granularity: "hour"`), no snapshots locales | La doc decía "no hay consumo por hora vía API"; quedó desactualizada. Con analytics el dato es real, histórico, y el mecanismo de `{timestamp, usage}` + deltas se descarta junto con su limitación ("solo hay datos desde que la app corre") |
 | 3 | ~~Gasto del día~~ | ~~`GET /api/v1/key` → `usage_daily`~~ **Superseded por #10** | En la prueba real los tres campos dieron $0.00 con consumo en curso |
 | 4 | Saldo | `GET /api/v1/credits` → `total_credits - total_usage` | Verificado con management key |
@@ -34,7 +34,7 @@ Una app que vive en la **barra de menú** y muestra, de un vistazo:
 | 9 | Verificación de éxito | Los datos de la app deben **coincidir con el dashboard de OpenRouter**, incluida la frescura | Meta original de la PoC, ajustada: ya no se validan deltas locales sino la data horaria de analytics |
 | 10 | ~~Gasto del día (corrección de #3)~~ **Superseded por #11** | | Hallazgo de la iteración 2: `usage_*` de `/key` es por-key, no de la cuenta |
 | 11 | Métricas del popover | **Saldo · Últimas 24 h · Última hora** (ventana móvil de 60 min con `granularity: minute`). "Gasto de hoy" fuera | Decisión del usuario (iteración 2): frágil (depende de dónde cae la medianoche local vs. buckets UTC) y de bajo valor — con las ventanas móviles ya se ve si algo está quemando crédito ahora |
-| 12 | Desglose de la ventana móvil | **Opción B**: "Últimos 60 min" desglosa por hora de reloj cuando cruza dos buckets (`3:00–4:00 PM $0.24 / 2:00–3:00 PM $0.12`) | Debatimos A (texto aclaratorio) / B (desglose con números) / C ("hora en curso", descartada: pierde el "¿está gastando ahora?") / E (sparkline, fase 2). B traduce la explicación clave a la UI con datos verificables |
+| 12 | Desglose de la ventana móvil | **Opción B**: "Últimos 60 min" desglosa por hora de reloj cuando cruza dos buckets (`3:00–4:00 PM $X / 2:00–3:00 PM $Y`) | Debatimos A (texto aclaratorio) / B (desglose con números) / C ("hora en curso", descartada: pierde el "¿está gastando ahora?") / E (sparkline, fase 2). B traduce la explicación clave a la UI con datos verificables |
 
 ## MVP
 
@@ -213,15 +213,15 @@ Timer de refresco, manejo de sleep/background, indicador de última actualizaci�
 
 #### Resultado de la prueba manual ✅
 
-- Conexión OK con management key: saldo $3.19 de $60.00, gasto del día $0.00,
-  últimas 24 h $0.26 en 2 buckets.
-- El saldo refleja uso en tiempo real: el curl de horas antes daba $3.28
-  (usage 56.72), ahora 56.81 — la app lee el valor vigente.
+- Conexión OK con management key: saldo ≈ $3 de un total ≈ $60, gasto del día $0.00,
+  últimas 24 h ≈ $0.3 en 2 buckets.
+- El saldo refleja uso en tiempo real: el curl de horas antes daba un uso ≈
+  $0.09 menor — la app lee el valor vigente.
 - **Hallazgo:** analytics **omite los buckets sin consumo** (devolvió 2 horas
   con data en una ventana de 24). La UI tiene que rellenar horas faltantes
   con $0, no asumir una fila por hora.
 - **Discrepancia a explicar (pregunta abierta #1):** usage_daily $0.00 mientras
-  las últimas 24 h suman $0.26. Hipótesis: usage_daily resetea a medianoche UTC
+  las últimas 24 h suman ≈ $0.3. Hipótesis: usage_daily resetea a medianoche UTC
   y el consumo cae en el día UTC de ayer, o el campo viene cacheado con delay.
   Validar contra el dashboard.
 
