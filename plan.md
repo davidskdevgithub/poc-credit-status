@@ -102,9 +102,37 @@ Proyecto Xcode con `MenuBarExtra`, models `Codable` para los tres endpoints,
 - `CreditStatusApp` con `MenuBarExtra(.window)` y `PopoverView` de diagnóstico
 - Build verificado: `xcodebuild ... CODE_SIGNING_ALLOWED=NO build` → SUCCESS
 
-### 2. Popover con datos *(pendiente — en curso tras fix del símbolo)*
+### 2. Popover con datos ✅ *(2026-10-29, implementado — prueba visual pendiente)*
 
 UI del popover con los tres datos, estado de error y estado inicial (sin key).
+
+#### Decisiones tomadas durante la iteración
+
+- **`MonitorModel` (`@Observable`, `@MainActor`)** como estado del popover:
+  los datos viejos **no se borran** cuando un refresh falla — se muestra el
+  error arriba y los datos con su timestamp ("stale pero útil").
+- La ventana re-consulte al abrir (`.task`), así el popover nunca muestra
+  información vieja sin indicarlo.
+- Formato monoespaciado de cifras (`monospacedDigit`) para que los valores no
+  "salten" entre refreshes.
+- El detalle de "Últimas 24 h" muestra horas con consumo + pico horario, no la
+  serie completa (el gráfico es fase 2).
+
+#### Implementado
+
+- `Services/MonitorModel.swift`: estado observable + orquestación de los tres
+  fetches + manejo de error/stale.
+- `Views/PopoverView.swift` reescrita: header, tres `MetricRow`, estados
+  `NoKeyState` / `LoadingState` / `ErrorBanner` con reintentar, footer con
+  última actualización + botón de refresh.
+- `SpendSeries` extiende con `total`, `hoursWithSpend`, `peak`.
+
+#### Gotchas de la iteración 2
+
+- xcodegen: los archivos nuevos hay que regenerarlos (`xcodegen generate`) —
+  el proyecto no los toma solos.
+- La interpolación `\(date, format: .dateTime...)` dentro de un `Text` no
+  infiere el estilo; usar `Date.FormatStyle(...)` explícito o `.formatted()`.
 
 ### 3. Refresco automático *(pendiente)*
 
@@ -130,6 +158,20 @@ Timer de refresco, manejo de sleep/background, indicador de última actualizaci�
   Verificado contra `CoreGlyphs.bundle/symbol_order.plist` del sistema: el
   equivalente visual (línea de pulso) es `waveform.path.ecg`. Corregido en
   app + popover + README.
+
+#### Resultado de la prueba manual ✅
+
+- Conexión OK con management key: saldo $3.19 de $60.00, gasto del día $0.00,
+  últimas 24 h $0.26 en 2 buckets.
+- El saldo refleja uso en tiempo real: el curl de horas antes daba $3.28
+  (usage 56.72), ahora 56.81 — la app lee el valor vigente.
+- **Hallazgo:** analytics **omite los buckets sin consumo** (devolvió 2 horas
+  con data en una ventana de 24). La UI tiene que rellenar horas faltantes
+  con $0, no asumir una fila por hora.
+- **Discrepancia a explicar (pregunta abierta #1):** usage_daily $0.00 mientras
+  las últimas 24 h suman $0.26. Hipótesis: usage_daily resetea a medianoche UTC
+  y el consumo cae en el día UTC de ayer, o el campo viene cacheado con delay.
+  Validar contra el dashboard.
 
 #### Estado del repo
 

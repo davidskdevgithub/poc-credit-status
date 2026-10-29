@@ -94,3 +94,16 @@ struct SpendSeries: Sendable {
     /// del plan (frescura de la data vs. dashboard).
     let cachedAt: Date?
 }
+
+extension SpendSeries {
+    /// El total de la ventana. Los buckets sin consumo no vienen en la
+    /// respuesta (hallazgo de la iteración 1): el total no cambia, pero la
+    /// densidad de la serie sí.
+    var total: Double { points.reduce(0) { $0 + $1.usd } }
+
+    /// Cantidad de horas con consumo real (> 0).
+    var hoursWithSpend: Int { points.filter { $0.usd > 0 }.count }
+
+    /// La hora de mayor gasto, si hubo alguna.
+    var peak: SpendPoint? { points.max(by: { $0.usd < $1.usd }) }
+}
