@@ -96,11 +96,7 @@ private struct MetricsView: View {
                 value: spend.total,
                 detail: detailForSpend
             )
-            MetricRow(
-                label: "Últimos 60 min",
-                value: lastHour.total,
-                detail: "ventana móvil, cruza horas · \(lastHour.bucketsWithSpend) min con consumo"
-            )
+            LastHourSection(series: lastHour)
         }
     }
 
@@ -125,6 +121,57 @@ private struct MetricsView: View {
             return "en la hora de ayer \(start) a \(end)"
         }
         return "el \(date.formatted(date: .abbreviated, time: .shortened))"
+    }
+}
+
+/// Últimos 60 min con desglose por hora de reloj (decisión #12): si la
+/// ventana móvil cruza dos buckets, se muestra cuánto aporta cada uno — la
+/// explicación del cruce, con números verificables. Si cae dentro de una
+/// sola hora, fila simple sin ruido. Solo se listan horas con consumo > 0
+/// para que el desglose sume visible con el total.
+private struct LastHourSection: View {
+    let series: SpendSeries
+
+    private var breakdown: [HourBucketSummary] {
+        series.breakdownByHour.filter { $0.total > 0 }
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 2) {
+            Text("Últimos 60 min")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+            Text(format(series.total))
+                .font(.system(.title2, design: .rounded))
+                .monospacedDigit()
+
+            if breakdown.count > 1 {
+                ForEach(breakdown) { bucket in
+                    HStack {
+                        Text(rangeLabel(bucket.hourStart))
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                        Spacer()
+                        Text(format(bucket.total))
+                            .font(.caption2)
+                            .monospacedDigit()
+                    }
+                }
+            } else {
+                Text("ventana móvil · \(series.bucketsWithSpend) min con consumo")
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+            }
+        }
+    }
+
+    private func rangeLabel(_ date: Date) -> String {
+        let start = date.formatted(date: .omitted, time: .shortened)
+        let end = date.addingTimeInterval(3600).formatted(date: .omitted, time: .shortened)
+        let range = "\(start)–\(end)"
+        if Calendar.current.isDateInToday(date) { return range }
+        if Calendar.current.isDateInYesterday(date) { return "ayer \(range)" }
+        return "\(date.formatted(date: .abbreviated, time: .shortened))"
     }
 }
 

@@ -101,6 +101,14 @@ struct SpendSeries: Sendable {
     let cachedAt: Date?
 }
 
+/// Desglose de una ventana por hora de reloj (decisión #12).
+struct HourBucketSummary: Sendable, Equatable, Identifiable {
+    let hourStart: Date
+    let total: Double
+
+    var id: Date { hourStart }
+}
+
 extension SpendSeries {
     /// El total de la ventana. Los buckets sin consumo no vienen en la
     /// respuesta (hallazgo de la iteración 1): el total no cambia, pero la
@@ -110,6 +118,28 @@ extension SpendSeries {
     /// Cantidad de buckets con consumo real (> 0). La unidad depende de la
     /// granularidad de la serie (horas en la de 24 h, minutos en la de 1 h).
     var bucketsWithSpend: Int { points.filter { $0.usd > 0 }.count }
+
+    /// Agrupa los puntos (minutos) en horas de reloj (UTC, como vienen los
+    /// buckets) y devuelve el total por hora, del bucket más reciente al más
+    /// viejo. Con esto la ventana móvil de 60 min se puede desglosar cuando
+    /// cruza dos horas — la explicación clave de la confusión pico vs. última
+    /// hora, puesta en la UI (decisión #12).
+    var breakdownByHour: [HourBucketSummary] {
+        var utcCalendar = Calendar(identifier: .gregorian)
+        utcCalendar.timeZone = TimeZone(identifier: "UTC")!
+
+        var totals: [Date: Double] = [:]
+        for point in points {
+            guard let hour = utcCalendar.dateInterval(of: .hour, for: point.bucketStart)?.start else {
+                continue
+            }
+            totals[hour, default: 0] += point.usd
+        }
+
+        return totals
+            .map { HourBucketSummary(hourStart: $0.key, total: $0.value) }
+            .sorted { $0.hourStart > $1.hourStart }
+    }
 
     /// La hora de mayor gasto, si hubo alguna.
     var peak: SpendPoint? { points.max(by: { $0.usd < $1.usd }) }

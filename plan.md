@@ -34,6 +34,7 @@ Una app que vive en la **barra de menú** y muestra, de un vistazo:
 | 9 | Verificación de éxito | Los datos de la app deben **coincidir con el dashboard de OpenRouter**, incluida la frescura | Meta original de la PoC, ajustada: ya no se validan deltas locales sino la data horaria de analytics |
 | 10 | ~~Gasto del día (corrección de #3)~~ **Superseded por #11** | | Hallazgo de la iteración 2: `usage_*` de `/key` es por-key, no de la cuenta |
 | 11 | Métricas del popover | **Saldo · Últimas 24 h · Última hora** (ventana móvil de 60 min con `granularity: minute`). "Gasto de hoy" fuera | Decisión del usuario (iteración 2): frágil (depende de dónde cae la medianoche local vs. buckets UTC) y de bajo valor — con las ventanas móviles ya se ve si algo está quemando crédito ahora |
+| 12 | Desglose de la ventana móvil | **Opción B**: "Últimos 60 min" desglosa por hora de reloj cuando cruza dos buckets (`3:00–4:00 PM $0.24 / 2:00–3:00 PM $0.12`) | Debatimos A (texto aclaratorio) / B (desglose con números) / C ("hora en curso", descartada: pierde el "¿está gastando ahora?") / E (sparkline, fase 2). B traduce la explicación clave a la UI con datos verificables |
 
 ## MVP
 
