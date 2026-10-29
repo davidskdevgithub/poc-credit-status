@@ -3,7 +3,9 @@ import SwiftUI
 /// Popover principal: saldo, gasto del día y últimas 24 h.
 /// Estados: sin key / error (con datos stale visibles) / datos.
 struct PopoverView: View {
-    @State private var model = MonitorModel()
+    /// Inyectado por la App (dueña del polling); @Observable dispara la
+    /// re-renderización sin necesitar @State.
+    let model: MonitorModel
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {

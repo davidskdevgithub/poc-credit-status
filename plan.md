@@ -147,9 +147,36 @@ UI del popover con los tres datos, estado de error y estado inicial (sin key).
   del bucket UTC, $0.00 era plausible pero confuso y de bajo valor. El popover
   pasa a saldo + dos ventanas móviles (24 h horaria, 1 h por minuto).
 
-### 3. Refresco automático *(pendiente)*
+### 3. Refresco automático ✅ *(2026-10-29, implementado — prueba de uso real pendiente)*
 
-Timer de refresco, manejo de sleep/background, indicador de última actualización.
+Timer de refresco, manejo de sleep/background, indicador de última actualización
+(ya presente desde la iteración 2).
+
+#### Decisiones tomadas durante la iteración
+
+- **El loop de polling vive en `MonitorModel`, arrancado por la App en su
+  `init`** — no en la vista: el contenido de `MenuBarExtra` solo existe
+  mientras el popover está abierto, y el refresh tiene que seguir aunque esté
+  cerrado (datos frescos al click).
+- **`Task.sleep` en loop** (3 min, dentro del rango 2–5 del plan): al dormir
+  el Mac el sleep se congela y retoma al despertar, así que el primer tick
+  post-wake ya refresca.
+- **`NSWorkspace.didWakeNotification`** además refresca inmediatamente al
+  despertar (duplicado posible con el tick retomado: aceptable, ambos
+  refrescan y `refresh()` es idempotente via guard de `isLoading`).
+- El modelo se inyecta en `PopoverView` como `let` — con `@Observable` no
+  hace falta `@State` para que la vista reaccione.
+
+#### Implementado
+
+- `MonitorModel.startPolling()` + `refreshInterval` (180 s) + observer de wake.
+- `CreditStatusApp` crea el modelo, arranca el polling y lo inyecta.
+
+#### Gotchas de la iteración 3
+
+- Pendiente de observar: comportamiento real al dormir/despertar (¿el tick
+  retomado + didWake refrescan dos veces?) y si el sistema mata el loop en
+  sleeps largos. Se valida con uso real, no en este commit.
 
 ## Registro de ejecución
 
