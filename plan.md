@@ -102,7 +102,7 @@ Proyecto Xcode con `MenuBarExtra`, models `Codable` para los tres endpoints,
 - `CreditStatusApp` con `MenuBarExtra(.window)` y `PopoverView` de diagnóstico
 - Build verificado: `xcodebuild ... CODE_SIGNING_ALLOWED=NO build` → SUCCESS
 
-### 2. Popover con datos *(pendiente)*
+### 2. Popover con datos *(pendiente — en curso tras fix del símbolo)*
 
 UI del popover con los tres datos, estado de error y estado inicial (sin key).
 
@@ -121,6 +121,15 @@ Timer de refresco, manejo de sleep/background, indicador de última actualizaci�
 - La fila de analytics usa claves dinámicas (`date__hour` según granularidad);
   se decodifica buscando prefijo `date__` para no acoplarse al schema.
 - Build con `CODE_SIGNING_ALLOWED=NO` (ad-hoc) para verificar sin firma real.
+
+#### Gotchas de la prueba manual (primera corrida)
+
+- **`systemImage: "activity"` no existe en SF Symbols** — el README lo usaba en
+  sentido conceptual. La app corría pero no aparecía nada en la barra de menú
+  y el log tiraba `No symbol named 'activity' found in system symbol set`.
+  Verificado contra `CoreGlyphs.bundle/symbol_order.plist` del sistema: el
+  equivalente visual (línea de pulso) es `waveform.path.ecg`. Corregido en
+  app + popover + README.
 
 #### Estado del repo
 

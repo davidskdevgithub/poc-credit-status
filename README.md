@@ -20,7 +20,7 @@ La app consulta la API de OpenRouter con una **management key** cargada manualme
 
 **Incluye:**
 
-- Ícono en la barra de menú (SF Symbol tipo "activity") + popover.
+- Ícono en la barra de menú (SF Symbol `waveform.path.ecg`, el equivalente visual del conceptual "activity", que no existe en el set) + popover.
 - Saldo disponible, gasto del día y gasto de las últimas horas (dato real del servidor vía analytics, sin snapshots).
 - Refresco manual y automático cada 2–5 minutos.
 - Manejo de errores de autenticación (401/403) con mensaje accionable.

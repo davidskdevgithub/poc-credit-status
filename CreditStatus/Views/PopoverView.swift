@@ -9,7 +9,7 @@ struct PopoverView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Label("Credit Status", systemImage: "activity")
+            Label("Credit Status", systemImage: "waveform.path.ecg")
                 .font(.headline)
 
             Text("Iteración 1 — scaffold + cliente API")
