@@ -122,10 +122,24 @@ struct OpenRouterClient: Sendable {
 /// `Sendable`, pero parsear/formatar es thread-safe en la práctica y el acceso
 /// es de solo lectura.
 enum Formatters {
-    /// ISO 8601 con segundos, como exige la Analytics API.
+    /// ISO 8601 con segundos, como exige la Analytics API para el request.
     nonisolated(unsafe) static let iso8601: ISO8601DateFormatter = {
         let formatter = ISO8601DateFormatter()
         formatter.formatOptions = [.withInternetDateTime]
         return formatter
     }()
+
+    /// Con fracciones de segundo: los buckets de la respuesta vienen como
+    /// `"2025-01-01T00:00:00.000Z"` (gotcha de la iteración 3 — el parser
+    /// sin `.withFractionalSeconds` los rechaza).
+    nonisolated(unsafe) static let iso8601Fractional: ISO8601DateFormatter = {
+        let formatter = ISO8601DateFormatter()
+        formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        return formatter
+    }()
+
+    /// Parser tolerante: prueba con milisegundos y cae a segundos enteros.
+    nonisolated(unsafe) static func parseISO8601(_ string: String) -> Date? {
+        Self.iso8601Fractional.date(from: string) ?? Self.iso8601.date(from: string)
+    }
 }

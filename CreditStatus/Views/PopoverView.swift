@@ -107,9 +107,21 @@ private struct MetricsView: View {
     private var detailForSpend: String {
         var parts = ["\(spend.bucketsWithSpend) \(spend.bucketsWithSpend == 1 ? "hora" : "horas") con consumo"]
         if let peak = spend.peak, peak.usd > 0 {
-            parts.append("pico \(format(peak.usd)) a las \(peak.bucketStart.formatted(date: .omitted, time: .shortened))")
+            parts.append("pico \(format(peak.usd)) \(labelFor(peak.bucketStart))")
         }
         return parts.joined(separator: " · ")
+    }
+
+    /// Con fecha si el bucket no es de hoy: "8:06 PM" sin fecha puede ser de
+    /// ayer y engaña (gotcha de la iteración 3).
+    private func labelFor(_ date: Date) -> String {
+        let time = date.formatted(date: .omitted, time: .shortened)
+        if Calendar.current.isDateInToday(date) {
+            return "a las \(time)"
+        } else if Calendar.current.isDateInYesterday(date) {
+            return "ayer a las \(time)"
+        }
+        return "el \(date.formatted(date: .abbreviated, time: .shortened))"
     }
 }
 

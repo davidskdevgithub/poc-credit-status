@@ -62,7 +62,7 @@ extension AnalyticsRow: Decodable {
         for key in c.allKeys {
             if key.stringValue.hasPrefix("date__") {
                 if let s = try? c.decode(String.self, forKey: key),
-                   let d = Formatters.iso8601.date(from: s) {
+                   let d = Formatters.parseISO8601(s) {
                     bucket = d
                 }
             } else if key.stringValue == "total_usage" {
