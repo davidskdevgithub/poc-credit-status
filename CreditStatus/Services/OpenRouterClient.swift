@@ -64,7 +64,11 @@ struct OpenRouterClient: Sendable {
         let points = response.data.data.map { row in
             SpendPoint(bucketStart: row.bucket ?? .distantPast, usd: row.totalUsage ?? 0)
         }
-        let cachedAt = response.data.cachedAt.map { Date(timeIntervalSince1970: $0) }
+        // cachedAt viene en epoch ms (ej. 1793300526598): normalizo con
+        // heurística para no depender de la unidad si la API cambia.
+        let cachedAt = response.data.cachedAt.map { ms in
+            Date(timeIntervalSince1970: ms > 1e11 ? ms / 1000 : ms)
+        }
         return SpendSeries(points: points, cachedAt: cachedAt)
     }
 
@@ -138,8 +142,22 @@ enum Formatters {
         return formatter
     }()
 
-    /// Parser tolerante: prueba con milisegundos y cae a segundos enteros.
+    /// Parser tolerante: fracciones de segundo, offset con dos puntos, y
+    /// como último recurso un DateFormatter POSIX genérico. Si nada pega,
+    /// devuelve nil (la UI muestra fecha de fallback en vez de crashear).
     nonisolated(unsafe) static func parseISO8601(_ string: String) -> Date? {
-        Self.iso8601Fractional.date(from: string) ?? Self.iso8601.date(from: string)
+        if let d = Self.iso8601Fractional.date(from: string) { return d }
+        if let d = Self.iso8601.date(from: string) { return d }
+        return Self.posix.date(from: string)
     }
+
+    /// Cubre variantes con offset tipo `+00:00` que ISO8601DateFormatter
+    /// rechaza.
+    static let posix: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.timeZone = TimeZone(identifier: "UTC")
+        formatter.dateFormat = "yyyy-MM-dd'T'HH:mm:ss.SSSZ"
+        return formatter
+    }()
 }

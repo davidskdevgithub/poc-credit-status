@@ -60,10 +60,16 @@ extension AnalyticsRow: Decodable {
         var usage: Double?
 
         for key in c.allKeys {
-            if key.stringValue.hasPrefix("date__") {
+            // Tolerante: "date__hour", "date__day", y lo que venga. El formato
+            // exacto del timestamp quedó por confirmar (el curl de diagnóstico
+            // de la iteración 3 volvió con las filas esperadas).
+            if key.stringValue.hasPrefix("date") {
                 if let s = try? c.decode(String.self, forKey: key),
                    let d = Formatters.parseISO8601(s) {
                     bucket = d
+                } else if let ms = try? c.decode(Double.self, forKey: key) {
+                    // Epoch en ms (como cachedAt: 1.79e12). Heurística: >1e11 → ms.
+                    bucket = Date(timeIntervalSince1970: ms > 1e11 ? ms / 1000 : ms)
                 }
             } else if key.stringValue == "total_usage" {
                 // Los spend metrics vienen como number, pero parseamos
