@@ -1,4 +1,5 @@
 import SwiftUI
+import AppKit
 
 /// Popover principal: saldo, gasto del día y últimas 24 h.
 /// Estados: sin key / error (con datos stale visibles) / datos.
@@ -71,6 +72,14 @@ struct PopoverView: View {
             .disabled(model.isLoading)
             .buttonStyle(.plain)
             .help("Refrescar")
+
+            Button {
+                NSApplication.shared.terminate(nil)
+            } label: {
+                Image(systemName: "xmark.circle")
+            }
+            .buttonStyle(.plain)
+            .help("Salir")
         }
     }
 }
