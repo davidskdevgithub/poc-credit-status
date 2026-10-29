@@ -97,9 +97,9 @@ private struct MetricsView: View {
                 detail: detailForSpend
             )
             MetricRow(
-                label: "Última hora",
+                label: "Últimos 60 min",
                 value: lastHour.total,
-                detail: "ventana móvil · \(lastHour.bucketsWithSpend) min con consumo"
+                detail: "ventana móvil, cruza horas · \(lastHour.bucketsWithSpend) min con consumo"
             )
         }
     }
@@ -112,14 +112,17 @@ private struct MetricsView: View {
         return parts.joined(separator: " · ")
     }
 
-    /// Con fecha si el bucket no es de hoy: "8:06 PM" sin fecha puede ser de
-    /// ayer y engaña (gotcha de la iteración 3).
+    /// Etiqueta del pico con la hora como RANGO cerrado del reloj — así es
+    /// comparable contra la ventana móvil sin confusión (gotcha de la
+    /// iteración 3: "pico a las 3:00 PM" + "última hora $0.36" parecía
+    /// contradictorio porque la ventana móvil cruza dos buckets).
     private func labelFor(_ date: Date) -> String {
-        let time = date.formatted(date: .omitted, time: .shortened)
+        let start = date.formatted(date: .omitted, time: .shortened)
+        let end = date.addingTimeInterval(3600).formatted(date: .omitted, time: .shortened)
         if Calendar.current.isDateInToday(date) {
-            return "a las \(time)"
+            return "en la hora de \(start) a \(end)"
         } else if Calendar.current.isDateInYesterday(date) {
-            return "ayer a las \(time)"
+            return "en la hora de ayer \(start) a \(end)"
         }
         return "el \(date.formatted(date: .abbreviated, time: .shortened))"
     }
