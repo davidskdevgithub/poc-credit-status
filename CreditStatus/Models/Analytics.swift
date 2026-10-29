@@ -104,6 +104,12 @@ extension SpendSeries {
     /// Cantidad de horas con consumo real (> 0).
     var hoursWithSpend: Int { points.filter { $0.usd > 0 }.count }
 
+    /// Horas de la ventana con consumo, desde `date` inclusive (ej. medianoche
+    /// local para el gasto de hoy).
+    func spend(since date: Date) -> Double {
+        points.filter { $0.hourStart >= date }.reduce(0) { $0 + $1.usd }
+    }
+
     /// La hora de mayor gasto, si hubo alguna.
     var peak: SpendPoint? { points.max(by: { $0.usd < $1.usd }) }
 }

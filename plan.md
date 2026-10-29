@@ -25,13 +25,14 @@ Una app que vive en la **barra de menú** y muestra, de un vistazo:
 |---|------|----------|--------------------|
 | 1 | Auth | **Management key** dedicada, cargada manualmente, con expiración y rotación (la del usuario expira Nov 2026) | `/credits` y la Analytics API exigen management key (403 con key de inferencia). Probado: `{"total_credits":60,"total_usage":56.72}` |
 | 2 | Gasto horario | **Analytics API** (`POST /api/v1/analytics/query`, `granularity: "hour"`), no snapshots locales | La doc decía "no hay consumo por hora vía API"; quedó desactualizada. Con analytics el dato es real, histórico, y el mecanismo de `{timestamp, usage}` + deltas se descarta junto con su limitación ("solo hay datos desde que la app corre") |
-| 3 | Gasto del día | `GET /api/v1/key` → `usage_daily` | Doc oficial de limits |
+| 3 | ~~Gasto del día~~ | ~~`GET /api/v1/key` → `usage_daily`~~ **Superseded por #10** | En la prueba real los tres campos dieron $0.00 con consumo en curso |
 | 4 | Saldo | `GET /api/v1/credits` → `total_credits - total_usage` | Verificado con management key |
 | 5 | Persistencia | **Ninguna** más allá de la key (UserDefaults para la PoC, Keychain en fase 2) | El estado por-snapshot ya no es necesario |
 | 6 | Seguridad | La UI comunica que es una **management key** (permiso amplio: administra keys de la cuenta), no una key de inferencia cualquiera | Riesgo explícito de la decisión 1 |
 | 7 | Stack | SwiftUI + `MenuBarExtra`, macOS 15 / Xcode 16, `URLSession` + `Codable` | Nativo, sin dependencias |
 | 8 | Estructura del código | `Models/ Services/ Views/`; `OpenRouterClient` como única fuente de datos (análogo al store de jugadas-3d: dueño del estado que todo consume) | Mapeo del espíritu "features" a una app de un solo popover |
 | 9 | Verificación de éxito | Los datos de la app deben **coincidir con el dashboard de OpenRouter**, incluida la frescura | Meta original de la PoC, ajustada: ya no se validan deltas locales sino la data horaria de analytics |
+| 10 | Gasto del día (corrección de #3) | **Analytics**: suma de buckets horarios desde la medianoche local | Hallazgo de la iteración 2: `usage_daily/weekly/monthly` de `/key` son **por-key**, no de la cuenta — con la management key (sin inferencia) dan siempre $0.00. Evidencia: los tres campos en $0.00 con `total_usage` creciendo y $0.31 en las últimas 24 h |
 
 ## MVP
 
@@ -133,6 +134,14 @@ UI del popover con los tres datos, estado de error y estado inicial (sin key).
   el proyecto no los toma solos.
 - La interpolación `\(date, format: .dateTime...)` dentro de un `Text` no
   infiere el estilo; usar `Date.FormatStyle(...)` explícito o `.formatted()`.
+- **Corrección de scope (decisión #3 → #10):** `usage_*` de `/key` es por-key;
+  el popover ahora calcula "gasto de hoy" sumando buckets horarios desde la
+  medianoche local. Limitación aceptada: el bucket UTC que contiene la
+  medianoche local (03:00 UTC en GMT-3) suma completo → "hoy" queda
+  levemente sobreestimado (hasta 3 h de ayer). Refinable con
+  `granularity: minute` si hiciera falta.
+- `/key` queda en el cliente (con comentario del hallazgo) para fase 2:
+  monitorear una key de inferencia específica con su `limit_remaining`.
 
 ### 3. Refresco automático *(pendiente)*
 

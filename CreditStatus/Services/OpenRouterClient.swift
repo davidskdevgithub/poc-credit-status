@@ -16,7 +16,13 @@ struct OpenRouterClient: Sendable {
         return try decode(CreditsResponse.self, from: data).data
     }
 
-    /// Uso acumulado de la key: `usage_daily`, `usage_weekly`, `usage_monthly`.
+    /// Uso **de esta key** (`usage_daily`, `usage_weekly`, `usage_monthly`).
+    ///
+    /// Hallazgo de la iteración 2: es uso por-key, no de la cuenta — con la
+    /// management key (que no hace inferencia) da siempre $0.00. Por eso el
+    /// popover no lo usa; el gasto por ventana sale de analytics. Queda para
+    /// fase 2: monitorear una key de inferencia específica con su
+    /// `limit_remaining`.
     func fetchKey() async throws -> KeyInfo {
         let data = try await get("key")
         return try decode(KeyResponse.self, from: data).data

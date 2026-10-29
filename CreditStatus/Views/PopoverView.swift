@@ -15,11 +15,11 @@ struct PopoverView: View {
                 }
             }
 
-            switch (KeyStore.apiKey, model.credits, model.keyInfo, model.spend) {
-            case (.none, _, _, _):
+            switch (KeyStore.apiKey, model.credits, model.spend) {
+            case (.none, _, _):
                 NoKeyState()
-            case (_, .some(let credits), .some(let keyInfo), .some(let spend)):
-                MetricsView(credits: credits, keyInfo: keyInfo, spend: spend)
+            case (_, .some(let credits), .some(let spend)):
+                MetricsView(credits: credits, spend: spend)
             default:
                 // Con key pero aún sin datos: primer load en curso (o fallido
                 // y no hay nada stale que mostrar).
@@ -77,7 +77,6 @@ struct PopoverView: View {
 
 private struct MetricsView: View {
     let credits: CreditsInfo
-    let keyInfo: KeyInfo
     let spend: SpendSeries
 
     var body: some View {
@@ -90,9 +89,9 @@ private struct MetricsView: View {
             )
             Divider()
             MetricRow(
-                label: "Gasto del día",
-                value: keyInfo.usageDaily ?? 0,
-                detail: "semanal \(format(keyInfo.usageWeekly ?? 0)) · mensual \(format(keyInfo.usageMonthly ?? 0))"
+                label: "Gasto de hoy",
+                value: todaySpend,
+                detail: "desde las 00:00 (hora local) · de toda la cuenta"
             )
             MetricRow(
                 label: "Últimas 24 h",
@@ -100,6 +99,15 @@ private struct MetricsView: View {
                 detail: detailForSpend
             )
         }
+    }
+
+    /// Suma de buckets desde la medianoche local. La medianoche local cae
+    /// adentro de un bucket UTC (GMT-3 → 03:00 UTC): el bucket que contiene la
+    /// medianoche suma completo, así que "hoy" queda levemente sobreestimado
+    /// (incluye hasta 3 h de ayer). Aceptable para la PoC; refinable con
+    /// granularity minute si hiciera falta.
+    private var todaySpend: Double {
+        spend.spend(since: Calendar.current.startOfDay(for: Date()))
     }
 
     private var detailForSpend: String {
