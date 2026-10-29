@@ -1,0 +1,22 @@
+name: CreditStatus
+options:
+  bundleIdPrefix: com.davidsekielyk
+  deploymentTarget:
+    macOS: "15.0"
+  createIntermediateGroups: true
+
+targets:
+  CreditStatus:
+    type: application
+    platform: macOS
+    sources:
+      - CreditStatus
+    info:
+      path: CreditStatus/Info.plist
+      properties:
+        LSUIElement: true # app de barra de menú: sin ícono en el Dock
+    settings:
+      base:
+        SWIFT_VERSION: "6.0"
+        MARKETING_VERSION: "0.1.0"
+        CODE_SIGN_IDENTITY: "-"
