@@ -28,24 +28,25 @@ struct OpenRouterClient: Sendable {
         return try decode(KeyResponse.self, from: data).data
     }
 
-    /// Gasto por hora (`total_usage` en USD, granularidad `hour`) para las
-    /// últimas `hoursBack` horas, en buckets UTC.
+    /// Gasto a nivel cuenta en buckets de `granularity` ("hour" | "minute")
+    /// para la ventana [now - minutesBack, now], en UTC.
     ///
     /// La métrica está hardcodeada (`total_usage`, mismo nombre que el campo
     /// de `/credits`). La mitigación del schema drift — resolver el nombre vía
     /// `GET /analytics/meta` — queda para fase 2; si la API renombra la
     /// métrica, esto fallará visiblemente con `.decoding`/`.http`.
-    func fetchHourlySpend(hoursBack: Int = 24, now: Date = Date()) async throws -> SpendSeries {
+    func fetchSpend(granularity: String, minutesBack: Int, now: Date = Date()) async throws -> SpendSeries {
         var utcCalendar = Calendar(identifier: .gregorian)
         utcCalendar.timeZone = TimeZone(identifier: "UTC")!
 
-        // Ventana [inicio de la hora hace `hoursBack`, ahora], en UTC.
-        let rawStart = utcCalendar.date(byAdding: .hour, value: -hoursBack, to: now)!
-        let start = utcCalendar.dateInterval(of: .hour, for: rawStart)!.start
+        // Ventana alineada al inicio del bucket (hora completa / minuto completo).
+        let rawStart = now.addingTimeInterval(-Double(minutesBack) * 60)
+        let bucket: Calendar.Component = granularity == "hour" ? .hour : .minute
+        let start = utcCalendar.dateInterval(of: bucket, for: rawStart)!.start
 
         let body = AnalyticsQueryRequest(
             metrics: ["total_usage"],
-            granularity: "hour",
+            granularity: granularity,
             timeRange: .init(
                 start: Formatters.iso8601.string(from: start),
                 end: Formatters.iso8601.string(from: now)
@@ -61,7 +62,7 @@ struct OpenRouterClient: Sendable {
         let response = try decode(AnalyticsResponse.self, from: data)
 
         let points = response.data.data.map { row in
-            SpendPoint(hourStart: row.bucket ?? .distantPast, usd: row.totalUsage ?? 0)
+            SpendPoint(bucketStart: row.bucket ?? .distantPast, usd: row.totalUsage ?? 0)
         }
         let cachedAt = response.data.cachedAt.map { Date(timeIntervalSince1970: $0) }
         return SpendSeries(points: points, cachedAt: cachedAt)

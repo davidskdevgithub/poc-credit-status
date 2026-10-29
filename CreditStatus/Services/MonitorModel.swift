@@ -9,6 +9,7 @@ import Observation
 final class MonitorModel {
     private(set) var credits: CreditsInfo?
     private(set) var spend: SpendSeries?
+    private(set) var lastHour: SpendSeries?
     private(set) var lastUpdated: Date?
 
     private(set) var isLoading = false
@@ -28,13 +29,14 @@ final class MonitorModel {
 
         let client = OpenRouterClient(apiKey: apiKey)
         do {
-            // Dos consultas: /credits (saldo) y analytics (gasto). El "gasto
-            // del día" sale de la misma serie horaria (buckets desde la
-            // medianoche local) — ver decisión #10 del plan.
+            // Tres consultas en paralelo: /credits (saldo) y analytics para
+            // las dos ventanas móviles (24 h por hora, 1 h por minuto).
             async let credits = client.fetchCredits()
-            async let spend = client.fetchHourlySpend(hoursBack: 24)
+            async let hourly = client.fetchSpend(granularity: "hour", minutesBack: 24 * 60)
+            async let lastHour = client.fetchSpend(granularity: "minute", minutesBack: 60)
             self.credits = try await credits
-            self.spend = try await spend
+            self.spend = try await hourly
+            self.lastHour = try await lastHour
             self.lastUpdated = Date()
             self.error = nil
         } catch let error as OpenRouterError {

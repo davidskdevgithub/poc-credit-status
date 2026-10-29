@@ -32,7 +32,8 @@ Una app que vive en la **barra de menú** y muestra, de un vistazo:
 | 7 | Stack | SwiftUI + `MenuBarExtra`, macOS 15 / Xcode 16, `URLSession` + `Codable` | Nativo, sin dependencias |
 | 8 | Estructura del código | `Models/ Services/ Views/`; `OpenRouterClient` como única fuente de datos (análogo al store de jugadas-3d: dueño del estado que todo consume) | Mapeo del espíritu "features" a una app de un solo popover |
 | 9 | Verificación de éxito | Los datos de la app deben **coincidir con el dashboard de OpenRouter**, incluida la frescura | Meta original de la PoC, ajustada: ya no se validan deltas locales sino la data horaria de analytics |
-| 10 | Gasto del día (corrección de #3) | **Analytics**: suma de buckets horarios desde la medianoche local | Hallazgo de la iteración 2: `usage_daily/weekly/monthly` de `/key` son **por-key**, no de la cuenta — con la management key (sin inferencia) dan siempre $0.00. Evidencia: los tres campos en $0.00 con `total_usage` creciendo y $0.31 en las últimas 24 h |
+| 10 | ~~Gasto del día (corrección de #3)~~ **Superseded por #11** | | Hallazgo de la iteración 2: `usage_*` de `/key` es por-key, no de la cuenta |
+| 11 | Métricas del popover | **Saldo · Últimas 24 h · Última hora** (ventana móvil de 60 min con `granularity: minute`). "Gasto de hoy" fuera | Decisión del usuario (iteración 2): frágil (depende de dónde cae la medianoche local vs. buckets UTC) y de bajo valor — con las ventanas móviles ya se ve si algo está quemando crédito ahora |
 
 ## MVP
 
@@ -142,6 +143,9 @@ UI del popover con los tres datos, estado de error y estado inicial (sin key).
   `granularity: minute` si hiciera falta.
 - `/key` queda en el cliente (con comentario del hallazgo) para fase 2:
   monitorear una key de inferencia específica con su `limit_remaining`.
+- **"Gasto de hoy" removido (decisión #11):** con la medianoche local a 3 h
+  del bucket UTC, $0.00 era plausible pero confuso y de bajo valor. El popover
+  pasa a saldo + dos ventanas móviles (24 h horaria, 1 h por minuto).
 
 ### 3. Refresco automático *(pendiente)*
 

@@ -15,11 +15,11 @@ struct PopoverView: View {
                 }
             }
 
-            switch (KeyStore.apiKey, model.credits, model.spend) {
-            case (.none, _, _):
+            switch (KeyStore.apiKey, model.credits, model.spend, model.lastHour) {
+            case (.none, _, _, _):
                 NoKeyState()
-            case (_, .some(let credits), .some(let spend)):
-                MetricsView(credits: credits, spend: spend)
+            case (_, .some(let credits), .some(let spend), .some(let lastHour)):
+                MetricsView(credits: credits, spend: spend, lastHour: lastHour)
             default:
                 // Con key pero aún sin datos: primer load en curso (o fallido
                 // y no hay nada stale que mostrar).
@@ -78,6 +78,7 @@ struct PopoverView: View {
 private struct MetricsView: View {
     let credits: CreditsInfo
     let spend: SpendSeries
+    let lastHour: SpendSeries
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
@@ -89,31 +90,22 @@ private struct MetricsView: View {
             )
             Divider()
             MetricRow(
-                label: "Gasto de hoy",
-                value: todaySpend,
-                detail: "desde las 00:00 (hora local) · de toda la cuenta"
-            )
-            MetricRow(
                 label: "Últimas 24 h",
                 value: spend.total,
                 detail: detailForSpend
             )
+            MetricRow(
+                label: "Última hora",
+                value: lastHour.total,
+                detail: "ventana móvil · \(lastHour.bucketsWithSpend) min con consumo"
+            )
         }
     }
 
-    /// Suma de buckets desde la medianoche local. La medianoche local cae
-    /// adentro de un bucket UTC (GMT-3 → 03:00 UTC): el bucket que contiene la
-    /// medianoche suma completo, así que "hoy" queda levemente sobreestimado
-    /// (incluye hasta 3 h de ayer). Aceptable para la PoC; refinable con
-    /// granularity minute si hiciera falta.
-    private var todaySpend: Double {
-        spend.spend(since: Calendar.current.startOfDay(for: Date()))
-    }
-
     private var detailForSpend: String {
-        var parts = ["\(spend.hoursWithSpend) \(spend.hoursWithSpend == 1 ? "hora" : "horas") con consumo"]
+        var parts = ["\(spend.bucketsWithSpend) \(spend.bucketsWithSpend == 1 ? "hora" : "horas") con consumo"]
         if let peak = spend.peak, peak.usd > 0 {
-            parts.append("pico \(format(peak.usd)) a las \(peak.hourStart.formatted(date: .omitted, time: .shortened))")
+            parts.append("pico \(format(peak.usd)) a las \(peak.bucketStart.formatted(date: .omitted, time: .shortened))")
         }
         return parts.joined(separator: " · ")
     }
